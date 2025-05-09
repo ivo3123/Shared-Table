@@ -28,6 +28,10 @@ class SharedTable {
         this.#cells = SharedTable.defaultTableData();
     }
 
+    loadTableData() {
+        // GET /table
+    }
+
     #renderHeader() {
         const headerRow = document.createElement("tr");
 
@@ -51,8 +55,18 @@ class SharedTable {
         for (let i = 0; i < this.#cells[rowIndex].length; ++i) {
             const cell = document.createElement("td");
             cell.contentEditable = "true";
-            cell.dataset.cell = `${SharedTable.getHeaderLetter(i)}${rowIndex + 1}`;
+            cell.dataset.rowIndex = rowIndex;
+            cell.dataset.columnIndex = i;
             cell.textContent = this.#cells[rowIndex][i];
+
+            cell.addEventListener("blur", (event) => {
+                const cellValue = event.target.textContent;
+                const rowIndex = event.target.dataset.rowIndex;
+                const columnIndex = event.target.dataset.columnIndex;
+
+                // PUT /table/:rowIndex/:columnIndex
+            });
+
             row.appendChild(cell);
         }
 
