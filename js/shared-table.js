@@ -32,6 +32,16 @@ class SharedTable {
         // GET /table
     }
 
+    blockCell(rowIndex, columnIndex) {
+        const cell = this.#cells[rowIndex][columnIndex];
+        if (cell) {
+            cell.contentEditable = "false";
+            cell.classList.add("blocked"); // Add a class to style blocked cells
+
+            // PATCH /table/:rowIndex/:columnIndex
+        }
+    }
+
     #renderHeader() {
         const headerRow = document.createElement("tr");
 
