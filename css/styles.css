@@ -1,13 +1,29 @@
+.field {
+  margin-bottom: 10px;
+}
+
+.error {
+  color: rgb(178, 44, 44);
+  margin-top: 5px;
+}
+
+.blocked {
+  background-color: rgb(243, 243, 243);
+}
+
 body {
   font-family: sans-serif;
   margin: 0;
-  padding: 0;
+  padding: 20px;
 }
 
-#table-container {
-  height: 90vh;
-  overflow: auto;
-  border: 1px solid #ccc;
+input,
+button {
+  padding: 5px;
+  margin-right: 5px;
+  font-size: 16px;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 table {
@@ -16,13 +32,22 @@ table {
   min-width: 1000px;
 }
 
+span {
+  display: inline-block;
+  margin-top: 5px;
+}
+
 th,
 td {
   border: 1px solid #aaa;
   padding: 6px;
-  min-width: 80px;
   height: 24px;
+  min-width: 80px;
+  max-width: 150px;
+  max-height: 100px;
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 td:focus {
