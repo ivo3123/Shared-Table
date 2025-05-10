@@ -2,4 +2,4 @@ import SharedTable from "./shared-table.js";
 
 let sharedTable = new SharedTable();
 
-document.getElementById("table-container").appendChild(sharedTable.render());
+document.getElementById("main-container").appendChild(sharedTable.adminRender());
