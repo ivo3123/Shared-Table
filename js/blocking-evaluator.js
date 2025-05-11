@@ -56,8 +56,11 @@ class BlockingEvaluator {
         fieldDiv.appendChild(input);
 
         input.addEventListener('change', (event) => {
-            BlockingEvaluator.#clearError(input);
             const blockingStatement = event.target.value;
+            if (!blockingStatement) {
+                return;
+            }
+            BlockingEvaluator.#clearError(input);
 
             this.#setBlockingFunction(blockingStatement);
             const newEvent = new Event(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, { bubbles: true });
@@ -68,8 +71,8 @@ class BlockingEvaluator {
             if (event.key !== 'Enter') {
                 return;
             }
-            BlockingEvaluator.#clearError(input);
             const blockingStatement = event.target.value;
+            BlockingEvaluator.#clearError(input);
 
             this.#setBlockingFunction(blockingStatement);
             const newEvent = new Event(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, { bubbles: true });
