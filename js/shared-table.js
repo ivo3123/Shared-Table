@@ -1,3 +1,4 @@
+import UserLogin from "./user-login.js";
 import BlockingEvaluator from "./blocking-evaluator.js";
 
 class SharedTable {
@@ -6,8 +7,9 @@ class SharedTable {
     static #DEFAULT_CELL_VALUE = "";
     static #ERROR_CELL_VALUE = "ERROR";
     #cells = [];
+    #userLogin = null;
     #blockingEvaluator = null;
-    #tableHtml = null;
+    #mainContainer = null;
 
     static defaultTableData() {
         return Array.from({ length: SharedTable.#DEFAULT_ROWS }, () =>
@@ -83,6 +85,7 @@ class SharedTable {
 
     constructor() {
         this.#cells = SharedTable.defaultTableData();
+        this.#userLogin = new UserLogin();
         this.#blockingEvaluator = new BlockingEvaluator();
     }
 
@@ -162,11 +165,11 @@ class SharedTable {
         if (rowIndex < 0 || rowIndex >= this.#cells.length || columnIndex < 0 || columnIndex >= this.#cells[0].length) {
             return;
         }
-        if (!this.#tableHtml) {
+        if (!this.#mainContainer) {
             return;
         }
 
-        const cell = this.#tableHtml.querySelector(`tr:nth-child(${rowIndex + 1}) td:nth-child(${columnIndex + 2})`);
+        const cell = this.#mainContainer.querySelector(`tr:nth-child(${rowIndex + 1}) td:nth-child(${columnIndex + 2})`);
         cell.contentEditable = "false";
         cell.className = "blocked"; // Add a class to style blocked cells
 
@@ -177,11 +180,11 @@ class SharedTable {
         if (rowIndex < 0 || rowIndex >= this.#cells.length || columnIndex < 0 || columnIndex >= this.#cells[0].length) {
             return;
         }
-        if (!this.#tableHtml) {
+        if (!this.#mainContainer) {
             return;
         }
 
-        const cell = this.#tableHtml.querySelector(`tr:nth-child(${rowIndex + 1}) td:nth-child(${columnIndex + 2})`);
+        const cell = this.#mainContainer.querySelector(`tr:nth-child(${rowIndex + 1}) td:nth-child(${columnIndex + 2})`);
         cell.contentEditable = "true";
         cell.className = ""; // Remove the class to restore the cell
 
@@ -254,42 +257,16 @@ class SharedTable {
         return row;
     }
 
-    render() {
-        if (this.#tableHtml) {
-            return this.#tableHtml;
-        }
-        
-        const table = document.createElement("table");
-        const thead = document.createElement("thead");
-        const tbody = document.createElement("tbody");
+    #renderBlockingEvaluator() {
+        const blockingEvaluatorContainer = document.getElementById("blocking-evaluator-container");
+        this.#blockingEvaluator.render(blockingEvaluatorContainer)
 
-        thead.appendChild(this.#renderHeader());
-        this.#cells.forEach((_, index) => {
-            tbody.appendChild(this.#renderRow(index));
-        });
-
-        table.appendChild(thead);
-        table.appendChild(tbody);
-
-        this.#tableHtml = table;
-
-        return table;
-    }
-
-    adminRender() {
-        const blockingEvaluator = this.#blockingEvaluator.render();
-        const table = this.render();
-
-        const container = document.createElement("div");
-        container.appendChild(blockingEvaluator);
-        container.appendChild(table);
-
-        container.addEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, (event) => {
+        this.#mainContainer.addEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, (event) => {
             this.applyBlockingStatement();
         });
 
-        container.addEventListener("contextmenu", (event) => {
-            event.preventDefault(); 
+        this.#mainContainer.addEventListener("contextmenu", (event) => {
+            event.preventDefault();
             const cell = event.target.closest("td");
             if (!cell) {
                 return;
@@ -307,8 +284,49 @@ class SharedTable {
                 }
             }
         });
+    }
 
-        return container;
+    render() {
+        if (this.#mainContainer) {
+            return this.#mainContainer;
+        }
+        
+        const mainContainer = document.createElement("section");
+        mainContainer.id = "main-container";
+
+        const userLogin = this.#userLogin.render();
+        const blockingEvaluatorContainer = document.createElement("section");
+        blockingEvaluatorContainer.id = "blocking-evaluator-container";
+
+        mainContainer.addEventListener(UserLogin.ADMIN_LOGIN_EVENT, (event) => {
+            this.#renderBlockingEvaluator();
+        });
+        mainContainer.addEventListener(UserLogin.ADMIN_LOGOUT_EVENT, (event) => {
+            blockingEvaluatorContainer.innerHTML = "";
+        });
+        if (this.#userLogin.isAdmin) {
+            this.#renderBlockingEvaluator();
+        }
+
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const tbody = document.createElement("tbody");
+
+        thead.appendChild(this.#renderHeader());
+        this.#cells.forEach((_, index) => {
+            tbody.appendChild(this.#renderRow(index));
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        mainContainer.appendChild(userLogin);
+        mainContainer.appendChild(blockingEvaluatorContainer);
+        mainContainer.appendChild(table);
+
+        this.#mainContainer = mainContainer;
+
+        return mainContainer;
     }
 }
 
