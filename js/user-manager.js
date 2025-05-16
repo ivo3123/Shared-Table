@@ -9,21 +9,42 @@ class UserManager {
     isLoggedIn = false;
     isAdmin = false;
     #webSocket = null;
+    #currentUsers = [ 'pomba', 'bemba', 'tumba' ];
     #sectionContainer = null;
 
     #boundSendHeartbeat = this.#sendHeartbeat.bind(this);
 
     constructor() {
-        // this.#webSocket = new WebSocket('ws://backend:8080');
         this.username = 'Anonymous ' + getRandomAnimal();
-
+         
+        // this.#webSocket = new WebSocket('ws://backend:8080');
         // this.#sendJoinToWebSocket();
+
+        // this.#webSocket.onmessage = (event) => {
+        //     const message = JSON.parse(event.data);
+        //     console.log('Received:', message);
+
+        //     if (message.type === 'update-users') {
+        //         this.#currentUsers = message.users;
+        //     }
+        // };
     }
 
     #sendHeartbeat() {
         this.#webSocket.send(JSON.stringify({
             type: 'heartbeat',
             username: this.username,
+            timestamp: new Date().toISOString()
+        }));
+    }
+
+    #getCurrentUsers() {
+        if (!this.#webSocket) {
+            return;
+        }
+
+        this.#webSocket.send(JSON.stringify({
+            type: 'get-current-users',
             timestamp: new Date().toISOString()
         }));
     }
@@ -47,13 +68,13 @@ class UserManager {
         let type = "";
 
         if (!this.isLoggedIn) {
-            type = 'guestLogin';
+            type = 'guest-login';
         }
         else if (!this.isAdmin) {
-            type = 'userLogin';
+            type = 'user-login';
         }
         else {
-            type = 'adminLogin';
+            type = 'admin-login';
         }
 
         this.#webSocket.send(JSON.stringify({
@@ -165,10 +186,25 @@ class UserManager {
         this.#sectionContainer.appendChild(logoutButton);
     }
 
+    #renderCurrentUsers() {
+        const currentUsersContainer = document.createElement('div');
+        currentUsersContainer.id = 'current-user-list';
+
+        this.#currentUsers.forEach((user) => {
+            const userItem = document.createElement('li');
+            userItem.className = 'current-user';
+            userItem.textContent = user[0];
+            currentUsersContainer.appendChild(userItem);
+        });
+
+        return currentUsersContainer;
+    }
+
     render() {
         const container = document.createElement('section');
         container.id = 'user-manager';
         const form = document.createElement('form');
+        form.id = 'user-manager-form';
         
         form.addEventListener('submit', (event) => this.handleSubmit(event));
 
@@ -200,6 +236,10 @@ class UserManager {
         form.appendChild(loginButton);
 
         container.appendChild(form);
+
+        const currentUsersContainer = this.#renderCurrentUsers();
+        container.appendChild(currentUsersContainer);
+
         this.#sectionContainer = container;
 
         return container;
