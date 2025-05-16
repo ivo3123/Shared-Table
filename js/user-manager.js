@@ -1,10 +1,10 @@
 import { showError, clearError } from "./util.js";
 
-class UserLogin {
+class UserManager {
     static #DEFAULT_USERNAME = 'anonymous';
     static ADMIN_LOGIN_EVENT = 'adminLogin';
     static ADMIN_LOGOUT_EVENT = 'adminLogout';
-    username = UserLogin.#DEFAULT_USERNAME;
+    username = UserManager.#DEFAULT_USERNAME;
     isLoggedIn = false;
     isAdmin = false;
     #sectionContainer = null;
@@ -36,7 +36,7 @@ class UserLogin {
         this.isAdmin = true; // whatever the server returns
 
         if (this.isAdmin) {
-            const event = new Event(UserLogin.ADMIN_LOGIN_EVENT, { bubbles: true });
+            const event = new Event(UserManager.ADMIN_LOGIN_EVENT, { bubbles: true });
             this.#sectionContainer.dispatchEvent(event);
         }
 
@@ -71,11 +71,11 @@ class UserLogin {
 
     handlerLogout() {
         if (this.isAdmin) {
-            const event = new Event(UserLogin.ADMIN_LOGOUT_EVENT, { bubbles: true });
+            const event = new Event(UserManager.ADMIN_LOGOUT_EVENT, { bubbles: true });
             this.#sectionContainer.dispatchEvent(event);
         }
 
-        this.username = UserLogin.#DEFAULT_USERNAME;
+        this.username = UserManager.#DEFAULT_USERNAME;
         this.isLoggedIn = false;
         this.isAdmin = false;
 
@@ -106,7 +106,7 @@ class UserLogin {
 
     render() {
         const container = document.createElement('section');
-        container.id = 'login-form';
+        container.id = 'user-manager';
         const form = document.createElement('form');
         
         form.addEventListener('submit', (event) => this.handleSubmit(event));
@@ -145,4 +145,4 @@ class UserLogin {
     }
 }
 
-export default UserLogin;
+export default UserManager;
