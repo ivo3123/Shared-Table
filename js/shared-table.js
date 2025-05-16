@@ -1,4 +1,4 @@
-import UserLogin from "./user-login.js";
+import UserManager from "./user-manager.js";
 import BlockingEvaluator from "./blocking-evaluator.js";
 
 class SharedTable {
@@ -7,17 +7,20 @@ class SharedTable {
     static #DEFAULT_CELL_VALUE = "";
     static #ERROR_CELL_VALUE = "ERROR";
     #cells = [];
-    #userLogin = null;
+    #userManager = null;
     #blockingEvaluator = null;
     #mainContainer = null;
 
-    static defaultTableData() {
+    #boundApplyBlockingStatement = this.#applyBlockingStatement.bind(this);
+    #boundApplySingleCellBlocking = this.#applySingleCellBlocking.bind(this);
+
+    static #defaultTableData() {
         return Array.from({ length: SharedTable.#DEFAULT_ROWS }, () =>
             Array.from({ length: SharedTable.#DEFAULT_COLUMNS }, () => SharedTable.#DEFAULT_CELL_VALUE)
         );
     }
 
-    static getHeaderLetter(index) {
+    static #getHeaderLetter(index) {
         let letter = "";
         index += 1;
 
@@ -30,7 +33,7 @@ class SharedTable {
         return letter;
     }
 
-    static parseCellRef(cellRef) {
+    static #parseCellRef(cellRef) {
         const match = cellRef.toUpperCase().match(/^([A-Z]+)(\d+)$/);
         if (!match) {
             return null;
@@ -50,10 +53,10 @@ class SharedTable {
         };
     }
 
-    static parseRange(rangeStr) {
+    static #parseRange(rangeStr) {
         const [startRef, endRef] = rangeStr.split(':');
-        const start = SharedTable.parseCellRef(startRef);
-        const end = SharedTable.parseCellRef(endRef);
+        const start = SharedTable.#parseCellRef(startRef);
+        const end = SharedTable.#parseCellRef(endRef);
 
         const cells = [];
         for (let r = start.row; r <= end.row; r++) {
@@ -64,16 +67,16 @@ class SharedTable {
         return cells;
     }
 
-    static parseArguments(argsStr) {
+    static #parseArguments(argsStr) {
         const args = argsStr.split(',').map(s => s.trim());
         const cells = [];
 
         args.forEach(arg => {
             const rangeMatch = arg.match(/^([A-Z]+\d+):([A-Z]+\d+)$/);
             if (rangeMatch) {
-                cells.push(...SharedTable.parseRange(rangeMatch[0]));
+                cells.push(...SharedTable.#parseRange(rangeMatch[0]));
             } else {
-                const cell = SharedTable.parseCellRef(arg);
+                const cell = SharedTable.#parseCellRef(arg);
                 if (cell) {
                     cells.push(cell);
                 }
@@ -84,8 +87,8 @@ class SharedTable {
     }
 
     constructor() {
-        this.#cells = SharedTable.defaultTableData();
-        this.#userLogin = new UserLogin();
+        this.#cells = SharedTable.#defaultTableData();
+        this.#userManager = new UserManager();
         this.#blockingEvaluator = new BlockingEvaluator();
     }
 
@@ -118,7 +121,7 @@ class SharedTable {
     evalArithmeticExpression(expression) {
         try {
             const sanitizedExpression = expression.replace(/([A-Z]+\d+)/g, (match) => {
-                const { row, col } = SharedTable.parseCellRef(match);
+                const { row, col } = SharedTable.#parseCellRef(match);
                 if (row < 0 || row >= this.#cells.length || col < 0 || col >= this.#cells[0].length) {
                     throw new Error("Invalid cell reference");
                 }
@@ -136,7 +139,7 @@ class SharedTable {
     }
 
     evalSum(argsStr) {
-        const cells = SharedTable.parseArguments(argsStr);
+        const cells = SharedTable.#parseArguments(argsStr);
         return cells.reduce((sum, { row, col }) => {
             const val = parseFloat(this.#cells[row][col]);
             return sum + (isNaN(val) ? 0 : val);
@@ -144,24 +147,24 @@ class SharedTable {
     }
 
     evalAverage(argsStr) {
-        const cells = SharedTable.parseArguments(argsStr);
+        const cells = SharedTable.#parseArguments(argsStr);
         const values = cells.map(({ row, col }) => parseFloat(this.#cells[row][col])).filter(v => !isNaN(v));
         return values.length ? values.reduce((a, b) => a + b) / values.length : 0;
     }
 
     evalMin(argsStr) {
-        const cells = SharedTable.parseArguments(argsStr);
+        const cells = SharedTable.#parseArguments(argsStr);
         const values = cells.map(({ row, col }) => parseFloat(this.#cells[row][col])).filter(v => !isNaN(v));
         return values.length ? Math.min(...values) : 0;
     }
 
     evalMax(argsStr) {
-        const cells = SharedTable.parseArguments(argsStr);
+        const cells = SharedTable.#parseArguments(argsStr);
         const values = cells.map(({ row, col }) => parseFloat(this.#cells[row][col])).filter(v => !isNaN(v));
         return values.length ? Math.max(...values) : 0;
     }
 
-    blockCell(rowIndex, columnIndex) {
+    #blockCell(rowIndex, columnIndex) {
         if (rowIndex < 0 || rowIndex >= this.#cells.length || columnIndex < 0 || columnIndex >= this.#cells[0].length) {
             return;
         }
@@ -176,7 +179,7 @@ class SharedTable {
         // PATCH /table/:rowIndex/:columnIndex
     }
 
-    unblockCell(rowIndex, columnIndex) {
+    #unblockCell(rowIndex, columnIndex) {
         if (rowIndex < 0 || rowIndex >= this.#cells.length || columnIndex < 0 || columnIndex >= this.#cells[0].length) {
             return;
         }
@@ -191,17 +194,40 @@ class SharedTable {
         // PATCH /table/:rowIndex/:columnIndex
     }
 
-    applyBlockingStatement() {
+    #applyBlockingStatement() {
         this.#cells.forEach((row, rowIndex) => {
             row.forEach((cell, columnIndex) => {
                 if (this.#blockingEvaluator.eval(rowIndex, columnIndex)) {
-                    this.blockCell(rowIndex, columnIndex);
+                    this.#blockCell(rowIndex, columnIndex);
                 }
                 else {
-                    this.unblockCell(rowIndex, columnIndex);
+                    this.#unblockCell(rowIndex, columnIndex);
                 }
             });
         });
+    }
+
+    #applySingleCellBlocking(event) {
+        if (!event.shiftKey) {
+            return;
+        }
+
+        const cell = event.target.closest("td");
+        if (!cell) {
+            return;
+        }
+
+        const rowIndex = cell.parentElement.rowIndex - 1;
+        const columnIndex = cell.cellIndex - 1;
+
+        if (rowIndex >= 0 && columnIndex >= 0) {
+            if (cell.classList.contains("blocked")) {
+                this.#unblockCell(rowIndex, columnIndex);
+            }
+            else {
+                this.#blockCell(rowIndex, columnIndex);
+            }
+        }
     }
 
     #renderHeader() {
@@ -210,7 +236,7 @@ class SharedTable {
         headerRow.appendChild(document.createElement("th"));
         for (let i = 0; i < this.#cells[0].length; ++i) {
             const th = document.createElement("th");
-            th.textContent = SharedTable.getHeaderLetter(i);
+            th.textContent = SharedTable.#getHeaderLetter(i);
             headerRow.appendChild(th);
         }
 
@@ -261,29 +287,16 @@ class SharedTable {
         const blockingEvaluatorContainer = document.getElementById("blocking-evaluator-container");
         this.#blockingEvaluator.render(blockingEvaluatorContainer)
 
-        this.#mainContainer.addEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, (event) => {
-            this.applyBlockingStatement();
-        });
+        this.#mainContainer.addEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, this.#boundApplyBlockingStatement);
+        this.#mainContainer.addEventListener("click", this.#boundApplySingleCellBlocking);
+    }
 
-        this.#mainContainer.addEventListener("contextmenu", (event) => {
-            event.preventDefault();
-            const cell = event.target.closest("td");
-            if (!cell) {
-                return;
-            }
+    #clearBlockingEvaluator() {
+        const blockingEvaluatorContainer = document.getElementById("blocking-evaluator-container");
+        blockingEvaluatorContainer.innerHTML = "";
 
-            const rowIndex = cell.parentElement.rowIndex - 1;
-            const columnIndex = cell.cellIndex - 1;
-
-            if (rowIndex >= 0 && columnIndex >= 0) {
-                if (cell.classList.contains("blocked")) {
-                    this.unblockCell(rowIndex, columnIndex);
-                }
-                else {
-                    this.blockCell(rowIndex, columnIndex);
-                }
-            }
-        });
+        this.#mainContainer.removeEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, this.#boundApplyBlockingStatement);
+        this.#mainContainer.removeEventListener("click", this.#boundApplySingleCellBlocking);
     }
 
     render() {
@@ -294,17 +307,17 @@ class SharedTable {
         const mainContainer = document.createElement("section");
         mainContainer.id = "main-container";
 
-        const userLogin = this.#userLogin.render();
+        const userManager = this.#userManager.render();
         const blockingEvaluatorContainer = document.createElement("section");
         blockingEvaluatorContainer.id = "blocking-evaluator-container";
 
-        mainContainer.addEventListener(UserLogin.ADMIN_LOGIN_EVENT, (event) => {
+        mainContainer.addEventListener(UserManager.ADMIN_LOGIN_EVENT, (event) => {
             this.#renderBlockingEvaluator();
         });
-        mainContainer.addEventListener(UserLogin.ADMIN_LOGOUT_EVENT, (event) => {
-            blockingEvaluatorContainer.innerHTML = "";
+        mainContainer.addEventListener(UserManager.ADMIN_LOGOUT_EVENT, (event) => {
+            this.#clearBlockingEvaluator();
         });
-        if (this.#userLogin.isAdmin) {
+        if (this.#userManager.isAdmin) {
             this.#renderBlockingEvaluator();
         }
 
@@ -320,7 +333,7 @@ class SharedTable {
         table.appendChild(thead);
         table.appendChild(tbody);
 
-        mainContainer.appendChild(userLogin);
+        mainContainer.appendChild(userManager);
         mainContainer.appendChild(blockingEvaluatorContainer);
         mainContainer.appendChild(table);
 
