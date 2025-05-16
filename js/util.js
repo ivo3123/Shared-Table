@@ -13,4 +13,16 @@ function clearError(inputElement) {
     }
 }
 
-export { showError, clearError };
+function getRandomAnimal() {
+    const animals = [
+        "Dog", "Cat", "Elephant", "Tiger", "Lion",
+        "Giraffe", "Zebra", "Panda", "Kangaroo", "Monkey",
+        "Dolphin", "Whale", "Shark", "Eagle", "Owl",
+        "Bear", "Fox", "Rabbit", "Horse", "Penguin"
+    ];
+
+    const randomIndex = Math.floor(Math.random() * animals.length);
+    return animals[randomIndex];
+}
+
+export { showError, clearError, getRandomAnimal };

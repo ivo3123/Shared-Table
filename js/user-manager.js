@@ -1,15 +1,69 @@
-import { showError, clearError } from "./util.js";
+import { showError, clearError, getRandomAnimal } from "./util.js";
 
 class UserManager {
-    static #DEFAULT_USERNAME = 'anonymous';
     static ADMIN_LOGIN_EVENT = 'adminLogin';
     static ADMIN_LOGOUT_EVENT = 'adminLogout';
-    username = UserManager.#DEFAULT_USERNAME;
+    static #HEARTBEAT_INTERVAL = 5000; // 5 seconds
+    #id = null;
+    username = null;
     isLoggedIn = false;
     isAdmin = false;
+    #webSocket = null;
     #sectionContainer = null;
 
-    constructor() {}
+    #boundSendHeartbeat = this.#sendHeartbeat.bind(this);
+
+    constructor() {
+        // this.#webSocket = new WebSocket('ws://backend:8080');
+        this.username = 'Anonymous ' + getRandomAnimal();
+
+        // this.#sendJoinToWebSocket();
+    }
+
+    #sendHeartbeat() {
+        this.#webSocket.send(JSON.stringify({
+            type: 'heartbeat',
+            username: this.username,
+            timestamp: new Date().toISOString()
+        }));
+    }
+
+    #sendLogoutToWebSocket() {
+        if (!this.#webSocket) {
+            return;
+        }
+
+        this.#webSocket.send(JSON.stringify({
+            type: 'logout',
+            username: this.username,
+            timestamp: new Date().toISOString()
+        }));
+    }
+
+    #sendJoinToWebSocket() {
+        if (!this.#webSocket) {
+            return;
+        }
+        let type = "";
+
+        if (!this.isLoggedIn) {
+            type = 'guestLogin';
+        }
+        else if (!this.isAdmin) {
+            type = 'userLogin';
+        }
+        else {
+            type = 'adminLogin';
+        }
+
+        this.#webSocket.send(JSON.stringify({
+            type: type,
+            username: this.username,
+            timestamp: new Date().toISOString()
+        }));
+
+        setInterval(this.#boundSendHeartbeat, UserManager.#HEARTBEAT_INTERVAL);
+    }
 
     handleSubmit(event) {
         event.preventDefault();
@@ -31,6 +85,7 @@ class UserManager {
         // POST /login
 
         // 200
+        this.#id = Math.floor(Math.random() * 1000); // whatever the server returns
         this.username = username;
         this.isLoggedIn = true;
         this.isAdmin = true; // whatever the server returns
@@ -40,13 +95,15 @@ class UserManager {
             this.#sectionContainer.dispatchEvent(event);
         }
 
+        this.#sendJoinToWebSocket();
+
         this.#toggleRendering();
 
         // 401
-        // showError(document.getElementById('loginForm'), 'Invalid username or password.');
+        // showError(document.getElementById('user-manager'), 'Invalid username or password.');
 
         // 500
-        // showError(document.getElementById('loginForm'), 'Server error. Please try again later.');
+        // showError(document.getElementById('user-manager'), 'Server error. Please try again later.');
     }
 
     handleRegister() {
@@ -56,17 +113,20 @@ class UserManager {
         // POST /register
 
         // 201
+        this.#id = Math.floor(Math.random() * 1000); // whatever the server returns
         this.username = username;
         this.isLoggedIn = true;
         this.isAdmin = false;
 
+        this.#sendJoinToWebSocket();
+
         this.#toggleRendering();
 
         // 409
-        // showError(document.getElementById('loginForm'), 'A user with this username already exists.');
+        // showError(document.getElementById('user-manager'), 'A user with this username already exists.');
 
         // 500
-        // showError(document.getElementById('loginForm'), 'Server error. Please try again later.');
+        // showError(document.getElementById('user-manager'), 'Server error. Please try again later.');
     }
 
     handlerLogout() {
@@ -75,13 +135,14 @@ class UserManager {
             this.#sectionContainer.dispatchEvent(event);
         }
 
-        this.username = UserManager.#DEFAULT_USERNAME;
+        this.username = 'Anonymous ' + getRandomAnimal();
         this.isLoggedIn = false;
         this.isAdmin = false;
 
-        this.#toggleRendering();
+        this.#sendLogoutToWebSocket();
+        this.#sendJoinToWebSocket();
 
-        //logic with anonymous monkey
+        this.#toggleRendering();
     }
 
     #toggleRendering() {
