@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация</title>
+    <script src="js/user-manager.js" defer></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <form id="auth-form">
+        <label>Потребителско име:
+            <input type="text" id="username" required>
+        </label>
+        <br>
+        <label>Парола:
+            <input type="password" id="password" required>
+        </label>
+        <br>
+        <button type="button" id="register-btn">Регистрация</button>
+        <button type="button" id="login-btn">Вход</button>
+    </form>
+    <div id="user-info" style="display:none;">
+        Добре дошъл, <span id="user-name"></span>!
+        <button id="logout-btn">
+            Изход
+        </button>
+    </div>
+</body>
+</html>
