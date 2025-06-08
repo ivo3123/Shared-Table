@@ -86,18 +86,76 @@ class UserManager {
         setInterval(this.#boundSendHeartbeat, UserManager.#HEARTBEAT_INTERVAL);
     }
 
-    handleSubmit(event) {
-        event.preventDefault();
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
-        const clickedButton = event.submitter.id;
+    async handleSubmit(event) {
+        event.preventDefault(); // Предотвратява презареждането на страницата
 
-        if (clickedButton === 'register-button') {
-            this.handleRegister(username, password);
-        } else if (clickedButton === 'login-button') {
-            this.handleLogin(username, password);
+        const form = event.target;
+        const usernameInput = form.querySelector('#username');
+        const passwordInput = form.querySelector('#password');
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+        const isRegister = event.submitter.id === 'register-button';
+
+        clearError(usernameInput);
+
+        const endpoint = isRegister ? '/register' : '/login';
+        const url = `/Shared-Table/api.php`;
+
+        //console.log(url);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'register', username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log('Успешен отговор:', data);
+                this.username = data.user.username;
+                this.isLoggedIn = true;
+                this.isAdmin = data.user.isAdmin;
+                this.#id = data.user.id;
+
+                // if (this.#webSocket.readyState === WebSocket.OPEN) {
+                //     this.#webSocket.send(JSON.stringify({
+                //         type: this.isAdmin ? 'admin-login' : 'user-login',
+                //         id: this.#id,
+                //         username: this.username,
+                //         isAdmin: this.isAdmin,
+                //         timestamp: new Date().toISOString()
+                //     }));
+                // }
+
+                // this.#updateUIOnLogin();
+                // this.#dispatchAdminEvents();
+
+            } else {
+                console.error('Грешка при отговор:', data);
+                showError(usernameInput, data.message || 'Неизвестна грешка при вход/регистрация.');
+            }
+        } catch (error) {
+            console.error('Грешка при fetch заявка:', error);
+            showError(usernameInput, 'Възникна мрежова грешка.');
         }
     }
+
+    // handleSubmit(event) {
+    //     event.preventDefault();
+    //     const username = document.getElementById('username').value.trim();
+    //     const password = document.getElementById('password').value.trim();
+    //     const clickedButton = event.submitter.id;
+
+    //     if (clickedButton === 'register-button') {
+    //         this.handleRegister(username, password);
+    //     } else if (clickedButton === 'login-button') {
+    //         this.handleLogin(username, password);
+    //     }
+    // }
 
     handleLogin() {
         const username = document.getElementById('username').value.trim();
