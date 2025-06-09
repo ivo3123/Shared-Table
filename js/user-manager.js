@@ -10,6 +10,7 @@ class UserManager {
     isAdmin = false;
     #webSocket = null;
     #currentUsers = [ 'pomba', 'bemba', 'tumba' ];
+    #currentAdmins = [ 'admin' ];
     #sectionContainer = null;
 
     #boundSendHeartbeat = this.#sendHeartbeat.bind(this);
@@ -26,25 +27,17 @@ class UserManager {
 
         //     if (message.type === 'update-users') {
         //         this.#currentUsers = message.users;
+        //         this.#currentAdmins = message.admins;
+        //         update rendering
         //     }
         // };
+        setInterval(this.#boundSendHeartbeat, UserManager.#HEARTBEAT_INTERVAL);
     }
 
     #sendHeartbeat() {
         this.#webSocket.send(JSON.stringify({
             type: 'heartbeat',
             username: this.username,
-            timestamp: new Date().toISOString()
-        }));
-    }
-
-    #getCurrentUsers() {
-        if (!this.#webSocket) {
-            return;
-        }
-
-        this.#webSocket.send(JSON.stringify({
-            type: 'get-current-users',
             timestamp: new Date().toISOString()
         }));
     }
@@ -59,31 +52,6 @@ class UserManager {
             username: this.username,
             timestamp: new Date().toISOString()
         }));
-    }
-
-    #sendJoinToWebSocket() {
-        if (!this.#webSocket) {
-            return;
-        }
-        let type = "";
-
-        if (!this.isLoggedIn) {
-            type = 'guest-login';
-        }
-        else if (!this.isAdmin) {
-            type = 'user-login';
-        }
-        else {
-            type = 'admin-login';
-        }
-
-        this.#webSocket.send(JSON.stringify({
-            type: type,
-            username: this.username,
-            timestamp: new Date().toISOString()
-        }));
-
-        setInterval(this.#boundSendHeartbeat, UserManager.#HEARTBEAT_INTERVAL);
     }
 
     handleSubmit(event) {
@@ -116,8 +84,6 @@ class UserManager {
             this.#sectionContainer.dispatchEvent(event);
         }
 
-        this.#sendJoinToWebSocket();
-
         this.#toggleRendering();
 
         // 401
@@ -139,8 +105,6 @@ class UserManager {
         this.isLoggedIn = true;
         this.isAdmin = false;
 
-        this.#sendJoinToWebSocket();
-
         this.#toggleRendering();
 
         // 409
@@ -161,7 +125,6 @@ class UserManager {
         this.isAdmin = false;
 
         this.#sendLogoutToWebSocket();
-        this.#sendJoinToWebSocket();
 
         this.#toggleRendering();
     }
