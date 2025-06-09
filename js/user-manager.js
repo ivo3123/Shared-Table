@@ -170,7 +170,8 @@ class UserManager {
         this.#sectionContainer.innerHTML = '';
 
         if (!this.isLoggedIn) {
-            this.#sectionContainer.appendChild(this.render());
+            this.#sectionContainer.appendChild(this.#renderForm());
+            this.#sectionContainer.appendChild(this.#renderCurrentUsers());
             return;
         }
 
@@ -186,26 +187,10 @@ class UserManager {
         this.#sectionContainer.appendChild(logoutButton);
     }
 
-    #renderCurrentUsers() {
-        const currentUsersContainer = document.createElement('div');
-        currentUsersContainer.id = 'current-user-list';
-
-        this.#currentUsers.forEach((user) => {
-            const userItem = document.createElement('li');
-            userItem.className = 'current-user';
-            userItem.textContent = user[0];
-            currentUsersContainer.appendChild(userItem);
-        });
-
-        return currentUsersContainer;
-    }
-
-    render() {
-        const container = document.createElement('section');
-        container.id = 'user-manager';
+    #renderForm() {
         const form = document.createElement('form');
         form.id = 'user-manager-form';
-        
+
         form.addEventListener('submit', (event) => this.handleSubmit(event));
 
         const usernameField = document.createElement('input');
@@ -235,10 +220,29 @@ class UserManager {
         form.appendChild(registerButton);
         form.appendChild(loginButton);
 
-        container.appendChild(form);
+        return form;
+    }
 
-        const currentUsersContainer = this.#renderCurrentUsers();
-        container.appendChild(currentUsersContainer);
+    #renderCurrentUsers() {
+        const currentUsersContainer = document.createElement('div');
+        currentUsersContainer.id = 'current-user-list';
+
+        this.#currentUsers.forEach((user) => {
+            const userItem = document.createElement('li');
+            userItem.className = 'current-user';
+            userItem.textContent = user[0];
+            currentUsersContainer.appendChild(userItem);
+        });
+
+        return currentUsersContainer;
+    }
+
+    render() {
+        const container = document.createElement('section');
+        container.id = 'user-manager';
+
+        container.appendChild(this.#renderForm());
+        container.appendChild(this.#renderCurrentUsers());
 
         this.#sectionContainer = container;
 
