@@ -1,12 +1,10 @@
 let socket;
-let loggedInUsername = null; // Променлива за запазване на логнатия потребител
+let loggedInUsername = null;
 
 function connect() {
     socket = new WebSocket("ws://127.0.0.1:8080");
 
     socket.onopen = function(event) {
-        // document.getElementById("output").innerHTML += "<span style='color: green;'>Connected to server</span><br>";
-        // Изпращаме JSON обект за идентификация
         if (loggedInUsername) {
             const identificationMessage = JSON.stringify({
                 type: 'identify',
@@ -17,55 +15,36 @@ function connect() {
     };
 
     socket.onmessage = function(event) {
-        // Очакваме JSON от сървъра, който да е 'user_list' или 'system_message'
         try {
             const messageData = JSON.parse(event.data);
             if (messageData.type === 'user_list') {
-                updateUserList(messageData.users); // Актуализирай списъка с потребители
-            } else if (messageData.type === 'system_message') {
-                // Показване на системни съобщения (напр. "X се присъедини/напусна")
-                // document.getElementById("output").innerHTML += "<span style='color: gray; font-style: italic;'>" + messageData.message + "</span><br>";
-            } else {
-                // За други неочаквани JSON съобщения (не би трябвало да има при тази логика)
-                // document.getElementById("output").innerHTML += "<span style='color: purple;'>Received unexpected JSON:</span> " + event.data + "<br>";
+                updateUserList(messageData.users);
             }
         } catch (e) {
-            // Ако съобщението не е JSON (не би трябвало да има такива от сървъра вече)
-            // document.getElementById("output").innerHTML += "<span style='color: red;'>Raw message (error parsing JSON):</span> " + event.data + "<br>";
+            console.error('Error parsing WebSocket message:', e);
         }
     };
 
     socket.onclose = function(event) {
-        //document.getElementById("output").innerHTML += "<span style='color: red;'>Disconnected from server</span><br>";
-        updateUserList([]); // Изчистване на списъка с потребители при затваряне
+        updateUserList([]);
     };
 
     socket.onerror = function(error) {
         console.error('WebSocket Error:', error);
-        //document.getElementById("output").innerHTML += "<span style='color: darkred;'>WebSocket Error: " + error.message + "</span><br>";
     };
 }
-
-// Функцията sendMessage вече не е нужна, тъй като няма чат съобщения.
-// Ако в бъдеще решите да добавите чат, ще я имплементирате отново тук.
-// function sendMessage(message) { /* ... */ }
-
 
 function updateUserList(users) {
     const userList = document.getElementById('online-users');
     if (!userList) return;
 
-    userList.innerHTML = ''; // Изчисти текущия списък
+    userList.innerHTML = '';
     if (users && users.length > 0) {
         users.forEach(user => {
             const li = document.createElement('li');
             li.textContent = user;
             userList.appendChild(li);
         });
-    } else {
-        // const li = document.createElement('li');
-        // li.textContent = 'Няма онлайн потребители.';
-        // userList.appendChild(li);
     }
 }
 
@@ -77,29 +56,21 @@ const userInfo = document.getElementById('user-info');
 const userNameSpan = document.getElementById('user-name');
 const logoutBtn = document.getElementById('logout-btn');
 
-// Променлива за референция към елемента за изход
-const outputDiv = document.getElementById('output');
-
-
 function showUser(username) {
     userNameSpan.textContent = username;
     userInfo.style.display = 'block';
     form.style.display = 'none';
-    loggedInUsername = username; // Запази потребителското име
+    loggedInUsername = username;
 }
 
 function showForm() {
     userInfo.style.display = 'none';
     form.style.display = 'block';
-    loggedInUsername = null; // Изчисти потребителското име при изход
-    updateUserList([]); // Изчисти списъка с потребители при изход
+    loggedInUsername = null;
+    updateUserList([]);
     
     if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.close(); // Затвори WebSocket връзката при изход
-    }
-    // Изчисти output div-а при изход
-    if (outputDiv) {
-        outputDiv.innerHTML = '';
+        socket.close();
     }
 }
 
@@ -129,8 +100,6 @@ async function submitAuth(action) {
     }
 
     let url = '';
-    // Увери се, че пътищата са правилни спрямо структурата на твоя проект
-    // Предполагам, че 'backend/api/' е коректният път спрямо index2.html
     if (action === 'register') {
         url = '../backend/api/register.php'; 
     } else if (action === 'login') {
@@ -149,8 +118,8 @@ async function submitAuth(action) {
         const result = await response.json();
         alert(result.message);
         if (action === 'login' && response.ok) {
-            showUser(username); // Показваме потребителското име и го запазваме в loggedInUsername
-            connect(); // Инициираме WebSocket връзка. Съобщението с username ще се изпрати в onopen.
+            showUser(username);
+            connect();
         }
     } catch (error) {
         console.error('Грешка при fetch заявка:', error);

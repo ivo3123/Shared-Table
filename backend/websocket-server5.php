@@ -1,5 +1,4 @@
 <?php
-// websocket-server5.php
 
 $host = '127.0.0.1'; 
 $port = 8080;        
@@ -12,7 +11,7 @@ socket_listen($socket);
 $clients = []; 
 $users = [];   
 
-echo "WebSocket server started on $host:$port\n"; // Може да запазите това в конзолата на сървъра за дебъгване
+echo "WebSocket server started on $host:$port\n";
 
 while (true) {
     $readSockets = array_values($clients);
@@ -22,7 +21,6 @@ while (true) {
     $except = null; 
 
     if (socket_select($readSockets, $write, $except, 0, 10) === false) {
-        // echo "Socket select error: " . socket_strerror(socket_last_error()) . "\n"; // Може да запазите това за дебъгване на сървъра
         continue;
     }
 
@@ -31,7 +29,7 @@ while (true) {
         if ($newSocket !== false) {
             $socketHash = spl_object_hash($newSocket); 
             $clients[$socketHash] = $newSocket; 
-            echo "New client connected (hash: {$socketHash})\n"; // Може да запазите това за дебъгване
+            echo "New client connected (hash: {$socketHash})\n";
         }
         $socketKey = array_search($socket, $readSockets);
         unset($readSockets[$socketKey]);    
@@ -52,18 +50,9 @@ while (true) {
                 }
                 unset($clients[$clientSocketHash]); 
                 socket_close($clientSocket); 
-                echo "Client '{$disconnectedUsername}' disconnected (hash: {$clientSocketHash})\n"; // Може да запазите това за дебъгване
+                echo "Client '{$disconnectedUsername}' disconnected (hash: {$clientSocketHash})\n";
                 
                 sendUserListToAllClients(array_values($clients), array_values($users));
-
-                // Премахнато: Изпращане на системно съобщение за напускане към клиентите
-                // $systemMessage = json_encode([
-                //     'type' => 'system_message',
-                //     'message' => "{$disconnectedUsername} напусна чата."
-                // ]);
-                // foreach ($clients as $client) { 
-                //     sendMessage($client, $systemMessage);
-                // }
             }
             continue;
         }
@@ -73,12 +62,11 @@ while (true) {
         if ($isHandshakeRequest) {
             performHandshake($clientSocket, $buffer);
         } else {
-            $unmaskedPayload = unmask($buffer); // Извикай новата функция unmask
+            $unmaskedPayload = unmask($buffer);
             $opcode = $unmaskedPayload['opcode'];
             $message = $unmaskedPayload['data'];
 
-            if ($opcode === 8) { // Opcode 8 е затварящ кадър (close frame)
-                // Клиентът е изпратил "close" кадър. Обработи го като нормално изключване.
+            if ($opcode === 8) {
                 $disconnectedUsername = 'Unknown';
 
                 if (isset($clients[$clientSocketHash])) {
@@ -92,12 +80,11 @@ while (true) {
 
                     sendUserListToAllClients(array_values($clients), array_values($users));
                 }
-                continue; // Премини към следващия сокет
+                continue;
             } elseif ($opcode === 1) { // Opcode 1 е текстов кадър (text frame)
                 $decodedMessage = json_decode($message, true);
 
                 if (json_last_error() === JSON_ERROR_NONE && isset($decodedMessage['type'])) {
-                    // ... твоят съществуващ switch (логика за 'identify') ...
                     switch ($decodedMessage['type']) {
                         case 'identify':
                             if (isset($decodedMessage['username']) && !empty($decodedMessage['username'])) {
@@ -120,7 +107,6 @@ while (true) {
                     echo "Received non-JSON or malformed message from client hash: {$clientSocketHash}: " . $message . "\n";
                 }
             } else {
-                // Обработка на други типове кадри, ако е необходимо (напр. ping, pong, binary)
                 echo "Received unknown opcode ({$opcode}) from client hash: {$clientSocketHash}.\n";
             }
         }
@@ -176,8 +162,6 @@ function unmask($payload)
 
 function sendMessage($clientSocket, $message)
 {
-    // Забележка: Сървърите обикновено НЕ маскират изходящите данни към клиентите.
-    // Тук запазваме маскирането, ако вашият клиент очаква маскирани данни.
     $message = mask($message); 
     socket_write($clientSocket, $message, strlen($message));
 }
@@ -218,7 +202,7 @@ function sendUserListToAllClients($clients, $userList) {
         'type' => 'user_list',
         'users' => $userList
     ]);
-    foreach ($clients as $clientSocket) { // Обхождаме ресурс обектите
+    foreach ($clients as $clientSocket) {
         sendMessage($clientSocket, $data);
     }
 }
