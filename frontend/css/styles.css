@@ -39,3 +39,42 @@ button {
 button:hover {
     background-color: #218838;
 }
+
+#online-users {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #fcfcfc;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    max-width: 400px;
+}
+
+#online-users li {
+    padding: 10px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+}
+
+#online-users li:last-child {
+    border-bottom: none;
+}
+
+#online-users li:hover {
+    background-color: #eef;
+    cursor: default;
+}
+
+#online-users li:empty {
+    text-align: center;
+    color: #888;
+    padding: 20px;
+    font-style: italic;
+}

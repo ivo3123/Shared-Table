@@ -5,7 +5,7 @@ function connect() {
     socket = new WebSocket("ws://127.0.0.1:8080");
 
     socket.onopen = function(event) {
-        document.getElementById("output").innerHTML += "<span style='color: green;'>Connected to server</span><br>";
+        // document.getElementById("output").innerHTML += "<span style='color: green;'>Connected to server</span><br>";
         // Изпращаме JSON обект за идентификация
         if (loggedInUsername) {
             const identificationMessage = JSON.stringify({
@@ -24,14 +24,14 @@ function connect() {
                 updateUserList(messageData.users); // Актуализирай списъка с потребители
             } else if (messageData.type === 'system_message') {
                 // Показване на системни съобщения (напр. "X се присъедини/напусна")
-                document.getElementById("output").innerHTML += "<span style='color: gray; font-style: italic;'>" + messageData.message + "</span><br>";
+                // document.getElementById("output").innerHTML += "<span style='color: gray; font-style: italic;'>" + messageData.message + "</span><br>";
             } else {
                 // За други неочаквани JSON съобщения (не би трябвало да има при тази логика)
-                document.getElementById("output").innerHTML += "<span style='color: purple;'>Received unexpected JSON:</span> " + event.data + "<br>";
+                // document.getElementById("output").innerHTML += "<span style='color: purple;'>Received unexpected JSON:</span> " + event.data + "<br>";
             }
         } catch (e) {
             // Ако съобщението не е JSON (не би трябвало да има такива от сървъра вече)
-            document.getElementById("output").innerHTML += "<span style='color: red;'>Raw message (error parsing JSON):</span> " + event.data + "<br>";
+            // document.getElementById("output").innerHTML += "<span style='color: red;'>Raw message (error parsing JSON):</span> " + event.data + "<br>";
         }
     };
 
