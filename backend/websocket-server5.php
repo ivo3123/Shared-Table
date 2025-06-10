@@ -73,41 +73,55 @@ while (true) {
         if ($isHandshakeRequest) {
             performHandshake($clientSocket, $buffer);
         } else {
-            $message = unmask($buffer);
-            $decodedMessage = json_decode($message, true);
+            $unmaskedPayload = unmask($buffer); // Извикай новата функция unmask
+            $opcode = $unmaskedPayload['opcode'];
+            $message = $unmaskedPayload['data'];
 
-            if (json_last_error() === JSON_ERROR_NONE && isset($decodedMessage['type'])) {
-                switch ($decodedMessage['type']) {
-                    case 'identify':
-                        if (isset($decodedMessage['username']) && !empty($decodedMessage['username'])) {
-                            $username = $decodedMessage['username'];
-                            if (!isset($users[$clientSocketHash])) {
-                                $users[$clientSocketHash] = $username; 
-                                echo "User '{$username}' identified via WebSocket (hash: {$clientSocketHash}).\n"; // Може да запазите това за дебъгване
-                                
-                                sendUserListToAllClients(array_values($clients), array_values($users));
+            if ($opcode === 8) { // Opcode 8 е затварящ кадър (close frame)
+                // Клиентът е изпратил "close" кадър. Обработи го като нормално изключване.
+                $disconnectedUsername = 'Unknown';
 
-                                // Премахнато: Изпращане на системно съобщение за присъединяване към клиентите
-                                // $systemMessage = json_encode([
-                                //     'type' => 'system_message',
-                                //     'message' => "{$username} се присъедини към чата."
-                                // ]);
-                                // foreach ($clients as $client) {
-                                //     if (spl_object_hash($client) !== $clientSocketHash) { 
-                                //         sendMessage($client, $systemMessage);
-                                //     }
-                                // }
-                            } else {
-                                echo "User '{$username}' (socket hash: {$clientSocketHash}) already identified. Ignoring duplicate 'identify' message.\n"; // Може да запазите това за дебъгване
+                if (isset($clients[$clientSocketHash])) {
+                    if (isset($users[$clientSocketHash])) {
+                        $disconnectedUsername = $users[$clientSocketHash];
+                        unset($users[$clientSocketHash]); 
+                    }
+                    unset($clients[$clientSocketHash]); 
+                    socket_close($clientSocket); 
+                    echo "Client '{$disconnectedUsername}' disconnected (hash: {$clientSocketHash})\n";
+
+                    sendUserListToAllClients(array_values($clients), array_values($users));
+                }
+                continue; // Премини към следващия сокет
+            } elseif ($opcode === 1) { // Opcode 1 е текстов кадър (text frame)
+                $decodedMessage = json_decode($message, true);
+
+                if (json_last_error() === JSON_ERROR_NONE && isset($decodedMessage['type'])) {
+                    // ... твоят съществуващ switch (логика за 'identify') ...
+                    switch ($decodedMessage['type']) {
+                        case 'identify':
+                            if (isset($decodedMessage['username']) && !empty($decodedMessage['username'])) {
+                                $username = $decodedMessage['username'];
+                                if (!isset($users[$clientSocketHash])) {
+                                    $users[$clientSocketHash] = $username;
+                                    echo "User '{$username}' identified via WebSocket (hash: {$clientSocketHash}).\n";
+
+                                    sendUserListToAllClients(array_values($clients), array_values($users));
+                                } else {
+                                    echo "User '{$username}' (socket hash: {$clientSocketHash}) already identified. Ignoring duplicate 'identify' message.\n";
+                                }
                             }
-                        }
-                        break;
-                    default:
-                        echo "Received unknown JSON type: " . $decodedMessage['type'] . " from socket hash: {$clientSocketHash}.\n"; // Може да запазите това за дебъгване
-                        break;
+                            break;
+                        default:
+                            echo "Received unknown JSON type: " . $decodedMessage['type'] . " from socket hash: {$clientSocketHash}.\n";
+                            break;
+                    }
+                } else {
+                    echo "Received non-JSON or malformed message from client hash: {$clientSocketHash}: " . $message . "\n";
                 }
             } else {
-                echo "Received non-JSON or malformed message from client hash: {$clientSocketHash}: " . $message . "\n"; // Може да запазите това за дебъгване
+                // Обработка на други типове кадри, ако е необходимо (напр. ping, pong, binary)
+                echo "Received unknown opcode ({$opcode}) from client hash: {$clientSocketHash}.\n";
             }
         }
     }
@@ -138,14 +152,16 @@ function parseHeaders($headers) {
 
 function unmask($payload)
 {
-    $length = ord($payload[1]) & 127; 
-    if ($length == 126) { 
+    $length = ord($payload[1]) & 127;
+    $opcode = ord($payload[0]) & 0x0F; // Extract the opcode
+
+    if ($length == 126) {
         $masks = substr($payload, 4, 4);
         $data = substr($payload, 8);
-    } elseif ($length == 127) { 
+    } elseif ($length == 127) {
         $masks = substr($payload, 10, 4);
         $data = substr($payload, 14);
-    } else { 
+    } else {
         $masks = substr($payload, 2, 4);
         $data = substr($payload, 6);
     }
@@ -154,7 +170,8 @@ function unmask($payload)
     for ($i = 0; $i < strlen($data); ++$i) {
         $unmaskedtext .= $data[$i] ^ $masks[$i % 4];
     }
-    return $unmaskedtext;
+
+    return ['opcode' => $opcode, 'data' => $unmaskedtext];
 }
 
 function sendMessage($clientSocket, $message)

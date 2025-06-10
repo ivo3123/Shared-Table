@@ -36,13 +36,13 @@ function connect() {
     };
 
     socket.onclose = function(event) {
-        document.getElementById("output").innerHTML += "<span style='color: red;'>Disconnected from server</span><br>";
+        //document.getElementById("output").innerHTML += "<span style='color: red;'>Disconnected from server</span><br>";
         updateUserList([]); // Изчистване на списъка с потребители при затваряне
     };
 
     socket.onerror = function(error) {
         console.error('WebSocket Error:', error);
-        document.getElementById("output").innerHTML += "<span style='color: darkred;'>WebSocket Error: " + error.message + "</span><br>";
+        //document.getElementById("output").innerHTML += "<span style='color: darkred;'>WebSocket Error: " + error.message + "</span><br>";
     };
 }
 
@@ -63,9 +63,9 @@ function updateUserList(users) {
             userList.appendChild(li);
         });
     } else {
-        const li = document.createElement('li');
-        li.textContent = 'Няма онлайн потребители.';
-        userList.appendChild(li);
+        // const li = document.createElement('li');
+        // li.textContent = 'Няма онлайн потребители.';
+        // userList.appendChild(li);
     }
 }
 
