@@ -56,6 +56,8 @@ const userInfo = document.getElementById('user-info');
 const userNameSpan = document.getElementById('user-name');
 const logoutBtn = document.getElementById('logout-btn');
 
+const anonymousCheckbox = document.getElementById('anonymous-checkbox');
+
 function showUser(username) {
     userNameSpan.textContent = username;
     userInfo.style.display = 'block';
