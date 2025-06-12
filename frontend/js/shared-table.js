@@ -1,4 +1,3 @@
-import UserManager from "./user-manager.js";
 import BlockingEvaluator from "./blocking-evaluator.js";
 
 class SharedTable {
@@ -7,7 +6,6 @@ class SharedTable {
     static #DEFAULT_CELL_VALUE = "";
     static #ERROR_CELL_VALUE = "ERROR";
     #cells = [];
-    #userManager = null;
     #blockingEvaluator = null;
     #mainContainer = null;
 
@@ -88,7 +86,6 @@ class SharedTable {
 
     constructor() {
         this.#cells = SharedTable.#defaultTableData();
-        this.#userManager = new UserManager();
         this.#blockingEvaluator = new BlockingEvaluator();
     }
 
@@ -283,20 +280,18 @@ class SharedTable {
         return row;
     }
 
-    #renderBlockingEvaluator() {
-        const blockingEvaluatorContainer = document.getElementById("blocking-evaluator-container");
-        this.#blockingEvaluator.render(blockingEvaluatorContainer)
-
-        this.#mainContainer.addEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, this.#boundApplyBlockingStatement);
-        this.#mainContainer.addEventListener("click", this.#boundApplySingleCellBlocking);
+    // This method now only renders the blocking evaluator content into its container
+    #renderBlockingEvaluator(blockingEvaluatorContainer) {
+        this.#blockingEvaluator.render(blockingEvaluatorContainer);
     }
 
     #clearBlockingEvaluator() {
         const blockingEvaluatorContainer = document.getElementById("blocking-evaluator-container");
-        blockingEvaluatorContainer.innerHTML = "";
-
-        this.#mainContainer.removeEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, this.#boundApplyBlockingStatement);
-        this.#mainContainer.removeEventListener("click", this.#boundApplySingleCellBlocking);
+        if (blockingEvaluatorContainer) {
+            blockingEvaluatorContainer.innerHTML = "";
+        }
+        // These listeners are now attached to #mainContainer in render() so no need to remove here if they are not explicitly added here.
+        // If you were to dynamically show/hide the evaluator, you'd manage listeners when showing/hiding.
     }
 
     render() {
@@ -307,19 +302,11 @@ class SharedTable {
         const mainContainer = document.createElement("section");
         mainContainer.id = "main-container";
 
-        const userManager = this.#userManager.render();
         const blockingEvaluatorContainer = document.createElement("section");
         blockingEvaluatorContainer.id = "blocking-evaluator-container";
+        mainContainer.appendChild(blockingEvaluatorContainer); // Append it to mainContainer
 
-        mainContainer.addEventListener(UserManager.ADMIN_LOGIN_EVENT, (event) => {
-            this.#renderBlockingEvaluator();
-        });
-        mainContainer.addEventListener(UserManager.ADMIN_LOGOUT_EVENT, (event) => {
-            this.#clearBlockingEvaluator();
-        });
-        if (this.#userManager.isAdmin) {
-            this.#renderBlockingEvaluator();
-        }
+        this.#renderBlockingEvaluator(blockingEvaluatorContainer); // Render content into the container
 
         const table = document.createElement("table");
         const thead = document.createElement("thead");
@@ -333,11 +320,14 @@ class SharedTable {
         table.appendChild(thead);
         table.appendChild(tbody);
 
-        mainContainer.appendChild(userManager);
-        mainContainer.appendChild(blockingEvaluatorContainer);
         mainContainer.appendChild(table);
 
-        this.#mainContainer = mainContainer;
+        this.#mainContainer = mainContainer; // Assign #mainContainer here
+
+        // Now that #mainContainer is assigned, attach the event listeners to it.
+        // These events bubble up from the input field inside blockingEvaluatorContainer.
+        this.#mainContainer.addEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, this.#boundApplyBlockingStatement);
+        this.#mainContainer.addEventListener("click", this.#boundApplySingleCellBlocking);
 
         return mainContainer;
     }
