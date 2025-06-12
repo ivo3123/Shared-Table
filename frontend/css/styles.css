@@ -112,6 +112,7 @@ button:hover {
 }
 
 #blocking-evaluator-container {
+    margin: auto;
     background-color: #f8f9fa;
     padding: 20px;
     border-radius: 8px;
@@ -188,3 +189,7 @@ table td.blocked {
     font-size: 0.9em;
     margin-top: 5px;
 } */
+
+#main-container {
+    display: none;
+}

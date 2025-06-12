@@ -60,12 +60,16 @@ function showUser(username) {
     userNameSpan.textContent = username;
     userInfo.style.display = 'block';
     form.style.display = 'none';
+    const mainContainer = document.getElementById('main-container');
+    mainContainer.style.display = 'block';
     loggedInUsername = username;
 }
 
 function showForm() {
     userInfo.style.display = 'none';
     form.style.display = 'block';
+    const mainContainer = document.getElementById('main-container');
+    mainContainer.style.display = 'none';
     loggedInUsername = null;
     updateUserList([]);
     
