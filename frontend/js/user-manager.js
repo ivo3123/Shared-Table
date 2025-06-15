@@ -35,31 +35,42 @@ function connect() {
 }
 
 function updateUserList(users) {
-    const userList = document.getElementById('online-users');
-    if (!userList) return;
-
-    userList.innerHTML = '';
-    if (users && users.length > 0) {
-        users.forEach(user => {
-            const li = document.createElement('li');
-            li.textContent = user;
-            userList.appendChild(li);
-        });
-    }
-
     const userListCircle = document.getElementById('online-users-circles');
     if (!userListCircle) return;
     userListCircle.innerHTML = '';
-    users.forEach((user, i) => {
-        const div = document.createElement('div');
-        div.classList.add('online-user');
-        const allPicturesCount = 3
-        const indexOfPicture = (i % allPicturesCount) + 1
-        div.innerHTML = `
-            <img class="online-user-image" src="assets/${indexOfPicture}.png">
-            <p>${user}</p>
-        `;
-        userListCircle.appendChild(div);
+    users.forEach(async (user) => {
+        try {
+            const url = '../backend/api/user-image.php';
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user }),
+            });
+
+            const result = await response.json();
+            const picturePath = result.pictureName;
+            const username = result.username;
+
+            const div = document.createElement('div');
+            div.classList.add('online-user');
+            if (picturePath) {
+                div.innerHTML = `
+                    <img class="online-user-image" src="../${picturePath}">
+                    <p>${username}</p>
+                `;
+            } else {
+                firstLetter = username.charAt(0);
+                div.innerHTML = `
+                    <div class="circle-letters online-user-image">${firstLetter}</div>
+                    <p>${username}</p>
+                `;
+            }
+            userListCircle.appendChild(div);
+        } catch (error) {
+            console.error('Грешка при fetch заявка:', error);
+            alert('Възникна грешка при изпълнение на заявката.');
+        }
     });
 }
 

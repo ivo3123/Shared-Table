@@ -28,7 +28,23 @@ if (!$user || !password_verify($password, $user['password'])) {
     exit;
 }
 
-$usernameOrAnonymous = $isAnonymous ? 'Anonymous' : $username;
+if ($isAnonymous) {
+    $stmt = $pdo->query("SELECT Counter FROM LoginCounter WHERE Id = 1");
+    $row = $stmt->fetch();
+    $counter = $row ? $row['Counter'] : 0;
+
+    $index = $counter % 3;
+
+    $animals = ["panda", "polar bear", "koala"];
+
+    $pdo->prepare("UPDATE LoginCounter SET Counter = Counter + 1 WHERE Id = 1")->execute();
+
+    $usernameOrAnonymous = "Anonymous " . $animals[$index];
+
+    $username = $username . " (" . $usernameOrAnonymous . ")";
+} else {
+    $usernameOrAnonymous = $username;
+}
 
 echo json_encode(['message' => 'Успешен вход.', 'username' => $username, 'usernameOrAnonymous' => $usernameOrAnonymous]);
 ?>
