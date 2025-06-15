@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = json_decode(file_get_contents('php://input'), true);
 $username = $input['username'] ?? '';
 $password = $input['password'] ?? '';
+$isAnonymous = $input['isAnonymous'] ?? false;
 
 if (!$username || !$password) {
     http_response_code(400);
@@ -27,5 +28,7 @@ if (!$user || !password_verify($password, $user['password'])) {
     exit;
 }
 
-echo json_encode(['message' => 'Успешен вход.']);
+$usernameOrAnonymous = $isAnonymous ? 'Anonymous' : $username;
+
+echo json_encode(['message' => 'Успешен вход.', 'username' => $username, 'usernameOrAnonymous' => $usernameOrAnonymous]);
 ?>

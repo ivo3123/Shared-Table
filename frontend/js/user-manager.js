@@ -46,6 +46,21 @@ function updateUserList(users) {
             userList.appendChild(li);
         });
     }
+
+    const userListCircle = document.getElementById('online-users-circles');
+    if (!userListCircle) return;
+    userListCircle.innerHTML = '';
+    users.forEach((user, i) => {
+        const div = document.createElement('div');
+        div.classList.add('online-user');
+        const allPicturesCount = 3
+        const indexOfPicture = (i % allPicturesCount) + 1
+        div.innerHTML = `
+            <img class="online-user-image" src="assets/${indexOfPicture}.png">
+            <p>${user}</p>
+        `;
+        userListCircle.appendChild(div);
+    });
 }
 
 const form = document.getElementById('auth-form');
@@ -58,13 +73,13 @@ const logoutBtn = document.getElementById('logout-btn');
 
 const anonymousCheckbox = document.getElementById('anonymous-checkbox');
 
-function showUser(username) {
+function showUser(username, usernameOrAnonymous) {
     userNameSpan.textContent = username;
     userInfo.style.display = 'block';
     form.style.display = 'none';
     const mainContainer = document.getElementById('main-container');
     mainContainer.style.display = 'block';
-    loggedInUsername = username;
+    loggedInUsername = usernameOrAnonymous;
 }
 
 function showForm() {
@@ -116,15 +131,18 @@ async function submitAuth(action) {
     }
 
     try {
+        isAnonymousCheckbox = document.getElementById('anonymous-checkbox')
+        isAnonymous = isAnonymousCheckbox.checked
+
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ username, password, isAnonymous }),
         });
         const result = await response.json();
         alert(result.message);
         if (action === 'login' && response.ok) {
-            showUser(username);
+            showUser(result.username, result.usernameOrAnonymous);
             connect();
         }
     } catch (error) {
