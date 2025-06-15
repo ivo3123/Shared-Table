@@ -1,0 +1,10 @@
+CREATE DATABASE shared_table_db;
+
+USE shared_table_db;
+
+CREATE TABLE Users (
+    Id INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(50) NOT NULL UNIQUE,
+    Password VARCHAR(100) NOT NULL,
+    IsAdmin BOOLEAN NOT NULL DEFAULT FALSE
+);
