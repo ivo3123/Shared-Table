@@ -227,6 +227,74 @@ class SharedTable {
         }
     }
 
+    #addRow() {
+        const newRow = Array(this.#cells[0].length).fill(SharedTable.#DEFAULT_CELL_VALUE);
+        this.#cells.push(newRow);
+
+        const tbody = this.#mainContainer.querySelector("tbody");
+        tbody.appendChild(this.#renderRow(this.#cells.length - 1));
+    }
+
+    #removeRow() {
+        if (this.#cells.length > 1) {
+            this.#cells.pop();
+            const tbody = this.#mainContainer.querySelector("tbody");
+            tbody.removeChild(tbody.lastChild);
+        }
+    }
+
+    #addColumn() {
+        this.#cells.forEach(row => row.push(SharedTable.#DEFAULT_CELL_VALUE));
+
+        const theadRow = this.#mainContainer.querySelector("thead tr");
+        const th = document.createElement("th");
+        th.textContent = SharedTable.#getHeaderLetter(this.#cells[0].length - 1);
+        theadRow.appendChild(th);
+
+        const tbody = this.#mainContainer.querySelector("tbody");
+        this.#cells.forEach((_, rowIndex) => {
+            const row = tbody.children[rowIndex];
+            const cell = document.createElement("td");
+            cell.contentEditable = "true";
+            cell.textContent = SharedTable.#DEFAULT_CELL_VALUE;
+
+            cell.addEventListener("blur", (event) => {
+                let cellValue = event.target.textContent;
+                if (cellValue.length > 0 && cellValue[0] === "=") {
+                    const expression = cellValue.slice(1);
+                    const result = this.eval(expression);
+                    cellValue = result;
+                }
+                this.#cells[rowIndex][this.#cells[0].length - 1] = cellValue;
+                event.target.textContent = cellValue;
+            });
+
+            cell.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    cell.blur();
+                }
+            });
+
+            row.appendChild(cell);
+        });
+    }
+
+    #removeColumn() {
+        if (this.#cells[0].length > 1) {
+            this.#cells.forEach(row => row.pop());
+
+            const theadRow = this.#mainContainer.querySelector("thead tr");
+            theadRow.removeChild(theadRow.lastChild);
+
+            const tbody = this.#mainContainer.querySelector("tbody");
+            this.#cells.forEach((_, rowIndex) => {
+                const row = tbody.children[rowIndex];
+                row.removeChild(row.lastChild);
+            });
+        }
+    }
+
     #renderHeader() {
         const headerRow = document.createElement("tr");
 
@@ -328,6 +396,28 @@ class SharedTable {
         // These events bubble up from the input field inside blockingEvaluatorContainer.
         this.#mainContainer.addEventListener(BlockingEvaluator.BLOCKING_STATEMENT_CHANGE_EVENT, this.#boundApplyBlockingStatement);
         this.#mainContainer.addEventListener("click", this.#boundApplySingleCellBlocking);
+
+        const controlPanel = document.createElement("div");
+        controlPanel.id = "table-controls";
+
+        const addRowBtn = document.createElement("button");
+        addRowBtn.textContent = "Add Row";
+        addRowBtn.addEventListener("click", () => this.#addRow());
+
+        const removeRowBtn = document.createElement("button");
+        removeRowBtn.textContent = "Remove Row";
+        removeRowBtn.addEventListener("click", () => this.#removeRow());
+
+        const addColBtn = document.createElement("button");
+        addColBtn.textContent = "Add Column";
+        addColBtn.addEventListener("click", () => this.#addColumn());
+
+        const removeColBtn = document.createElement("button");
+        removeColBtn.textContent = "Remove Column";
+        removeColBtn.addEventListener("click", () => this.#removeColumn());
+
+        controlPanel.append(addRowBtn, removeRowBtn, addColBtn, removeColBtn);
+        mainContainer.appendChild(controlPanel);
 
         return mainContainer;
     }
